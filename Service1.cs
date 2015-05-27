@@ -16,14 +16,13 @@ namespace keep_dns_in_sync_with_ip
 {
     public partial class DNS_IP_Sync_Service : ServiceBase
     {
-        private bool DEBUG = true; //TODO
+        private bool DEBUG = false;
 
-        private string USERNAME = "";
-        private string PASSWORD = "";
-        private string CPANEL_URL = "";
-        private string DNS_ENTRY = "";
+        //TODO - move these to settings
+        private string DOMAIN = "";
+        private List<string> DNS_NAMES = new List<string>() { "" };
 
-        private string _my_IP = "";
+        private CPanel _cPanel;
 
         System.Timers.Timer _timer = new System.Timers.Timer();
         private System.Diagnostics.EventLog _eventLog;
@@ -40,18 +39,18 @@ namespace keep_dns_in_sync_with_ip
             }
             _eventLog.Source = "MySource";
             _eventLog.Log = "MyNewLog";
+
+            //instanciate cpanel object
+            _cPanel = new CPanel();
         }
 
         protected override void OnStart(string[] args)
         {
             _eventLog.WriteEntry("OnStart");
 
-            //TODO: read ip address from domain and set as current
-
-            //TODO - move values to settings
-
             if (!DEBUG)
             {
+                //TODO - move values to settings
                 int poll_frequency_in_min = 15; //15 minutes
                 int poll_frequency = poll_frequency_in_min * 60 * 1000;
 
@@ -76,59 +75,74 @@ namespace keep_dns_in_sync_with_ip
         {
             _eventLog.WriteEntry("CheckForIPUpdate");
 
-            string stored_ip = _my_IP;
-            string current_ip = GetPublicIPAddress();
+            IPAddress server_ip = GetPublicIPAddress();
 
-            if (stored_ip != current_ip)
+            foreach (string dns_name in DNS_NAMES)
             {
-                //update local value
-                _my_IP = current_ip;
+                CPanel.DNSEntry dns_entry = _cPanel.GetDNSEntry(DOMAIN, dns_name);
+                IPAddress dns_ip;
+                bool valid_dns_ip = IPAddress.TryParse(dns_entry.address, out dns_ip);
 
-                UpdateDNSRecord();
+                if ((valid_dns_ip) && (dns_ip.ToString() != server_ip.ToString()))
+                {
+                    UpdateDNSRecord(dns_entry, server_ip);
+                }
             }
-
         }
 
-        private void UpdateDNSRecord()
+        private void UpdateDNSRecord(CPanel.DNSEntry dns_entry, IPAddress new_ip)
         {
             _eventLog.WriteEntry("UpdateDNSRecord");
 
-            //TODO
+            dns_entry.address = new_ip.ToString();
 
-            throw new NotImplementedException();
+            _cPanel.UpdateDNSEntry(DOMAIN, dns_entry);
         }
 
-        protected string GetPublicIPAddress()
+        /// <summary>
+        /// Calls out to DynDNS's public IP service that echos your public IP address
+        /// </summary>
+        /// <returns>The public IP address of the system</returns>
+        protected IPAddress GetPublicIPAddress()
         {
             _eventLog.WriteEntry("GetPublicIPAddress");
 
-            string ip_address = "";
+            IPAddress ip_address = IPAddress.Parse("127.0.0.1");
             string text_to_parse = "";
 
             //checkip.dyndns.org
             //Current IP Address: 192.168.1.1
             //be kind and don't request more than once every 10 min
 
-            if (!DEBUG)
-            {
-                //call dyndns's free service to get current IP address
-                HttpWebRequest req = HttpWebRequest.CreateHttp("http://checkip.dyndns.org");
-                WebResponse resp = req.GetResponse();
-                Stream stream = resp.GetResponseStream();
-                StreamReader sr = new StreamReader(stream);
-                text_to_parse = sr.ReadToEnd();
-            }
-            else
-            {
-                text_to_parse = "Current IP Address: 192.168.1.1";
-            }
+            //if (!DEBUG)
+            //{
+
+            //call dyndns's free service to get current IP address
+            HttpWebRequest req = HttpWebRequest.CreateHttp("http://checkip.dyndns.org");
+            WebResponse resp = req.GetResponse();
+            Stream stream = resp.GetResponseStream();
+            StreamReader sr = new StreamReader(stream);
+            text_to_parse = sr.ReadToEnd();
+
+            //}
+            //else
+            //{
+            //    text_to_parse = "Current IP Address: 192.168.1.1";
+            //}
 
             //extract IP address from response
             Regex re = new Regex(@"Current IP Address:[^\d]*(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})");
             MatchCollection matches = re.Matches(text_to_parse);
             if (matches.Count >= 1 && matches[0].Groups.Count > 1)
             {
-                ip_address = matches[0].Groups[1].Value;
+                if (!IPAddress.TryParse(matches[0].Groups[1].Value, out ip_address))
+                {
+                    _eventLog.WriteEntry(string.Format("Error: could not parse IP address ({0})", matches[0].Groups[1].Value));
+                }
+            }
+            else
+            {
+                _eventLog.WriteEntry(string.Format("Error: could not find IP address in response ({0})", text_to_parse));
             }
 
             return ip_address;

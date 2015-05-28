@@ -27,10 +27,7 @@ namespace keep_dns_in_sync_with_ip
             edit_zone_record
         };
 
-        //TODO - move these to settings
-        private string USERNAME = "";
-        private string PASSWORD = "";
-        private string CPANEL_URL = "";
+        ServiceConfigSection config = (ServiceConfigSection)System.Configuration.ConfigurationManager.GetSection("serviceConfig");
 
         public CPanel()
         {
@@ -49,14 +46,14 @@ namespace keep_dns_in_sync_with_ip
             }
 
             HttpWebRequest req = HttpWebRequest.CreateHttp(string.Format("{0}/json-api/cpanel?cpanel_jsonapi_user=user&cpanel_jsonapi_apiversion=2&cpanel_jsonapi_module={1}&cpanel_jsonapi_func={2}&{3}",
-                CPANEL_URL,
+                config.CPanel.CPanelURL.Value,
                 System.Enum.GetName(typeof(Module), module),
                 System.Enum.GetName(typeof(Function), function),
                 parameters
                 ));
 
             // !!! Warning - use SSL if possible to encrypt since Basic auth is used !!!
-            string auth = "Basic " + Convert.ToBase64String(System.Text.Encoding.Default.GetBytes(USERNAME + ":" + PASSWORD));
+            string auth = "Basic " + Convert.ToBase64String(System.Text.Encoding.Default.GetBytes(config.CPanel.Username.Value + ":" + config.CPanel.Password.Value));
             req.PreAuthenticate = true;
             req.AuthenticationLevel = System.Net.Security.AuthenticationLevel.MutualAuthRequested;
             req.Headers.Add("Authorization", auth);
@@ -105,21 +102,21 @@ namespace keep_dns_in_sync_with_ip
         public class DNSEntry
         {
             [DataMember(Name = "record")]
-            public string record;
+            public string record = "";
             [DataMember(Name = "type")]
-            public string type;
+            public string type = "";
             [DataMember(Name = "address")]
-            public string address;
+            public string address = "";
             [DataMember(Name = "ttl")]
-            public string ttl;
+            public string ttl = "";
             [DataMember(Name = "name")]
-            public string name;
+            public string name = "";
             [DataMember(Name = "line")]
-            public string line;
+            public string line = "";
             [DataMember(Name = "Line")]
-            public string Line;
+            public string Line = "";
             [DataMember(Name = "class")]
-            public string class_type; 
+            public string class_type = ""; 
         }
     }
 }

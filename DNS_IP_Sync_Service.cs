@@ -16,12 +16,9 @@ namespace keep_dns_in_sync_with_ip
 {
     public partial class DNS_IP_Sync_Service : ServiceBase
     {
-        private bool DEBUG = false;
+        private bool DEBUG = true;
 
-        //TODO - move these to settings
-        private string DOMAIN = "";
-        private List<string> DNS_NAMES = new List<string>() { "" };
-
+        ServiceConfigSection config = (ServiceConfigSection)System.Configuration.ConfigurationManager.GetSection("serviceConfig");
         private CPanel _cPanel;
 
         System.Timers.Timer _timer = new System.Timers.Timer();
@@ -40,7 +37,7 @@ namespace keep_dns_in_sync_with_ip
             _eventLog.Source = "MySource";
             _eventLog.Log = "MyNewLog";
 
-            //instanciate cpanel object
+            //instantiate cpanel object
             _cPanel = new CPanel();
         }
 
@@ -50,8 +47,7 @@ namespace keep_dns_in_sync_with_ip
 
             if (!DEBUG)
             {
-                //TODO - move values to settings
-                int poll_frequency_in_min = 15; //15 minutes
+                int poll_frequency_in_min = config.PollFrequency;
                 int poll_frequency = poll_frequency_in_min * 60 * 1000;
 
                 _timer.Interval = poll_frequency;
@@ -77,9 +73,11 @@ namespace keep_dns_in_sync_with_ip
 
             IPAddress server_ip = GetPublicIPAddress();
 
-            foreach (string dns_name in DNS_NAMES)
+            foreach (DNSName dns_name_entry in config.CPanel.DNSNames)
             {
-                CPanel.DNSEntry dns_entry = _cPanel.GetDNSEntry(DOMAIN, dns_name);
+                string dns_name = dns_name_entry.Value;
+
+                CPanel.DNSEntry dns_entry = _cPanel.GetDNSEntry(config.CPanel.Domain.Value, dns_name);
                 IPAddress dns_ip;
                 bool valid_dns_ip = IPAddress.TryParse(dns_entry.address, out dns_ip);
 
@@ -96,11 +94,11 @@ namespace keep_dns_in_sync_with_ip
 
             dns_entry.address = new_ip.ToString();
 
-            _cPanel.UpdateDNSEntry(DOMAIN, dns_entry);
+            _cPanel.UpdateDNSEntry(config.CPanel.Domain.Value, dns_entry);
         }
 
         /// <summary>
-        /// Calls out to DynDNS's public IP service that echos your public IP address
+        /// Calls out to DynDNS's public IP service that echoes your public IP address
         /// </summary>
         /// <returns>The public IP address of the system</returns>
         protected IPAddress GetPublicIPAddress()

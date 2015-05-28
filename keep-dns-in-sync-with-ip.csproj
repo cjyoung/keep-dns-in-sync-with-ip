@@ -83,12 +83,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CPanel.cs" />
-    <Compile Include="ProjectInstaller.cs">
-      <SubType>Component</SubType>
-    </Compile>
-    <Compile Include="ProjectInstaller.Designer.cs">
-      <DependentUpon>ProjectInstaller.cs</DependentUpon>
-    </Compile>
     <Compile Include="DNS_IP_Sync_Service.cs">
       <SubType>Component</SubType>
     </Compile>
@@ -96,6 +90,12 @@
       <DependentUpon>DNS_IP_Sync_Service.cs</DependentUpon>
     </Compile>
     <Compile Include="Program.cs" />
+    <Compile Include="ProjectInstaller.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="ProjectInstaller.Designer.cs">
+      <DependentUpon>ProjectInstaller.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ServiceConfigSection.cs" />
   </ItemGroup>

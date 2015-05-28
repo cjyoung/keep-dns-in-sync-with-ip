@@ -16,7 +16,7 @@ namespace keep_dns_in_sync_with_ip
 {
     public partial class DNS_IP_Sync_Service : ServiceBase
     {
-        private bool DEBUG = true;
+        private bool DEBUG = false;
 
         ServiceConfigSection config = (ServiceConfigSection)System.Configuration.ConfigurationManager.GetSection("serviceConfig");
         private CPanel _cPanel;

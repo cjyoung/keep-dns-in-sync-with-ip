@@ -32,6 +32,10 @@ namespace keep_dns_in_sync_with_ip
             }
         }
 
+        /// <summary>
+        /// Start an array of services in interactive mode to allow for debugging
+        /// </summary>
+        /// <param name="servicesToRun">An array of services to start</param>
         static void RunInteractive(ServiceBase[] servicesToRun)
         {
             Console.WriteLine("Services running in interactive mode.");
